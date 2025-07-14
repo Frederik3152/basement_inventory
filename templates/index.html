@@ -134,6 +134,22 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
+        .modal-lg {
+            max-width: 600px;
+        }
+
+        .barcode-field {
+            transition: all 0.2s ease;
+        }
+
+        .barcode-field:hover {
+            background-color: #f8f9fa;
+        }
+
+        .btn-outline-danger:disabled {
+            opacity: 0.4;
+        }
     </style>
 </head>
 <body>
@@ -345,6 +361,72 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary" onclick="saveNewItem()">Save Item</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Item Modal -->
+    <div class="modal fade" id="editItemModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Item</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editItemForm">
+                        <input type="hidden" name="item_id" id="editItemId">
+                        <div class="mb-3">
+                            <label class="form-label">Item Name *</label>
+                            <input type="text" class="form-control" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Barcodes</label>
+                            <div id="editBarcodesContainer">
+                                <!-- Barcodes will be populated here -->
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="addEditBarcodeField()">
+                                <i class="bi bi-plus"></i> Add Barcode
+                            </button>
+                            <small class="text-muted d-block mt-1">Add multiple barcodes for the same item (different brands, sizes, etc.)</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Category *</label>
+                            <select class="form-select" name="category" required>
+                                <!-- Categories will be loaded here -->
+                            </select>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Current Stock *</label>
+                                    <input type="number" class="form-control" name="current_stock" min="0" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Minimum Stock *</label>
+                                    <input type="number" class="form-control" name="min_stock" min="0" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Unit *</label>
+                            <input type="text" class="form-control" name="unit" placeholder="e.g., pieces, cans, rolls" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Location</label>
+                            <input type="text" class="form-control" name="location" placeholder="e.g., Shelf A">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-danger me-auto" onclick="confirmDeleteItem()">
+                        <i class="bi bi-trash"></i> Delete Item
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveEditedItem()">Save Changes</button>
                 </div>
             </div>
         </div>

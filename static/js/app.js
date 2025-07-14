@@ -150,13 +150,13 @@ function displayItems(itemsToDisplay) {
                     ` : ''}
                     
                     <div class="d-flex gap-2 mt-3">
-                        <button class="btn btn-sm btn-outline-success flex-fill" onclick="showTransactionModal('${item.id}', '${escapeHtml(item.name)}', 'restock')">
+                        <button class="btn btn-sm btn-outline-success" onclick="showTransactionModal('${item.id}', '${escapeHtml(item.name)}', 'restock')">
                             <i class="bi bi-plus"></i> Restock
                         </button>
-                        <button class="btn btn-sm btn-outline-warning flex-fill" onclick="showTransactionModal('${item.id}', '${escapeHtml(item.name)}', 'usage')">
+                        <button class="btn btn-sm btn-outline-warning" onclick="showTransactionModal('${item.id}', '${escapeHtml(item.name)}', 'usage')">
                             <i class="bi bi-dash"></i> Use
                         </button>
-                        <button class="btn btn-sm btn-outline-secondary" onclick="editItem('${item.id}')">
+                        <button class="btn btn-sm btn-primary" onclick="editItem('${item.id}')" title="Edit item details">
                             <i class="bi bi-pencil"></i>
                         </button>
                     </div>
@@ -429,7 +429,12 @@ function showBarcodesModal(itemId, itemName, barcodes) {
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        <h6 id="barcodesItemName"></h6>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 id="barcodesItemName" class="mb-0"></h6>
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="openEditFromBarcodes()">
+                                <i class="bi bi-pencil"></i> Edit Item
+                            </button>
+                        </div>
                         <div id="barcodesList"></div>
                         <hr>
                         <div class="input-group">
@@ -460,6 +465,13 @@ function showBarcodesModal(itemId, itemName, barcodes) {
     
     const bsModal = new bootstrap.Modal(modal);
     bsModal.show();
+}
+
+// Open edit modal from barcodes modal
+function openEditFromBarcodes() {
+    const itemId = document.getElementById('newBarcodeInput').getAttribute('data-item-id');
+    bootstrap.Modal.getInstance(document.getElementById('barcodesModal')).hide();
+    editItem(itemId);
 }
 
 // New function to add a barcode to an existing item
@@ -604,7 +616,145 @@ function showToast(message, type = 'info') {
     }, 5000);
 }
 
-// Edit item function (placeholder)
-function editItem(itemId) {
-    showToast('Edit functionality will be implemented in the next version!', 'info');
+// Edit item function
+async function editItem(itemId) {
+    try {
+        // Find the item in our current items array
+        const item = items.find(i => i.id === itemId);
+        if (!item) {
+            showToast('Item not found', 'error');
+            return;
+        }
+        
+        // Populate the edit form
+        document.getElementById('editItemId').value = item.id;
+        document.querySelector('#editItemForm [name="name"]').value = item.name;
+        document.querySelector('#editItemForm [name="category"]').value = item.category;
+        document.querySelector('#editItemForm [name="current_stock"]').value = item.current_stock;
+        document.querySelector('#editItemForm [name="min_stock"]').value = item.min_stock;
+        document.querySelector('#editItemForm [name="unit"]').value = item.unit;
+        document.querySelector('#editItemForm [name="location"]').value = item.location || '';
+        
+        // Populate categories in edit form
+        const editCategorySelect = document.querySelector('#editItemForm [name="category"]');
+        editCategorySelect.innerHTML = '';
+        Object.entries(categories).forEach(([key, category]) => {
+            const option = document.createElement('option');
+            option.value = key;
+            option.textContent = category.name;
+            option.selected = key === item.category;
+            editCategorySelect.appendChild(option);
+        });
+        
+        // Populate barcodes
+        const barcodesContainer = document.getElementById('editBarcodesContainer');
+        barcodesContainer.innerHTML = '';
+        
+        if (item.barcodes && item.barcodes.length > 0) {
+            item.barcodes.forEach(barcode => {
+                addEditBarcodeField(barcode);
+            });
+        } else {
+            addEditBarcodeField(); // Add one empty field
+        }
+        
+        // Show the modal
+        const modal = new bootstrap.Modal(document.getElementById('editItemModal'));
+        modal.show();
+        
+    } catch (error) {
+        console.error('Error loading item for edit:', error);
+        showToast('Failed to load item details', 'error');
+    }
+}
+
+// Add barcode field for edit form
+function addEditBarcodeField(value = '') {
+    const container = document.getElementById('editBarcodesContainer');
+    const fieldDiv = document.createElement('div');
+    fieldDiv.className = 'input-group mb-2';
+    fieldDiv.innerHTML = `
+        <input type="text" class="form-control" name="edit_barcodes[]" placeholder="Enter barcode" value="${escapeHtml(value)}">
+        <button type="button" class="btn btn-outline-danger" onclick="removeEditBarcodeField(this)" ${container.children.length === 0 ? 'disabled' : ''}>
+            <i class="bi bi-dash"></i>
+        </button>
+    `;
+    container.appendChild(fieldDiv);
+    
+    // Enable/disable remove buttons based on field count
+    updateEditBarcodeButtons();
+}
+
+// Remove barcode field from edit form
+function removeEditBarcodeField(button) {
+    const container = document.getElementById('editBarcodesContainer');
+    if (container.children.length > 1) {
+        button.closest('.input-group').remove();
+        updateEditBarcodeButtons();
+    }
+}
+
+// Update edit barcode buttons (ensure at least one field remains)
+function updateEditBarcodeButtons() {
+    const container = document.getElementById('editBarcodesContainer');
+    const removeButtons = container.querySelectorAll('.btn-outline-danger');
+    
+    removeButtons.forEach((btn, index) => {
+        btn.disabled = container.children.length === 1;
+    });
+}
+
+// Save edited item
+async function saveEditedItem() {
+    const form = document.getElementById('editItemForm');
+    const formData = new FormData(form);
+    const itemId = formData.get('item_id');
+    
+    // Collect all barcode inputs
+    const barcodeInputs = form.querySelectorAll('input[name="edit_barcodes[]"]');
+    const barcodes = Array.from(barcodeInputs)
+        .map(input => input.value.trim())
+        .filter(barcode => barcode); // Remove empty values
+    
+    const itemData = {
+        name: formData.get('name'),
+        barcodes: barcodes,
+        category: formData.get('category'),
+        current_stock: parseInt(formData.get('current_stock')),
+        min_stock: parseInt(formData.get('min_stock')),
+        unit: formData.get('unit'),
+        location: formData.get('location')
+    };
+    
+    try {
+        await apiCall(`/api/items/${itemId}`, 'PUT', itemData);
+        showToast('Item updated successfully!', 'success');
+        bootstrap.Modal.getInstance(document.getElementById('editItemModal')).hide();
+        loadItems();
+    } catch (error) {
+        showToast('Failed to update item. Please try again.', 'error');
+    }
+}
+
+// Confirm delete item
+function confirmDeleteItem() {
+    const itemName = document.querySelector('#editItemForm [name="name"]').value;
+    
+    if (confirm(`Are you sure you want to delete "${itemName}"? This action cannot be undone.`)) {
+        deleteItem();
+    }
+}
+
+// Delete item
+async function deleteItem() {
+    const itemId = document.getElementById('editItemId').value;
+    
+    try {
+        await apiCall(`/api/items/${itemId}`, 'DELETE');
+        showToast('Item deleted successfully!', 'success');
+        bootstrap.Modal.getInstance(document.getElementById('editItemModal')).hide();
+        loadItems();
+    } catch (error) {
+        showToast('Failed to delete item. Please try again.', 'error');
+    }
 }

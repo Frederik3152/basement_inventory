@@ -46,6 +46,15 @@ A modern, intuitive inventory management application designed to help you track 
    - Use multiple barcodes for items that come in different brands/sizes
    - Remove barcode fields with the "-" button
 
+### Editing Items
+1. Click the edit button (pencil icon) on any item card
+2. Modify any item details including:
+   - Name, category, stock levels, unit, location
+   - Add or remove barcodes
+   - Update stock quantities
+3. Use the "Delete Item" button to permanently remove items
+4. All changes are saved immediately
+
 ### Barcode Scanning
 1. Click "Scan Barcode" button
 2. Allow camera access when prompted
@@ -58,6 +67,7 @@ A modern, intuitive inventory management application designed to help you track 
 - **Add Barcodes**: Click the eye icon to view/manage all barcodes for an item
 - **Remove Barcodes**: Use the trash icon next to individual barcodes
 - **Scan Any Barcode**: Any barcode associated with an item will find it
+- **Edit from Barcodes**: Click "Edit Item" button in the barcodes modal for full editing
 
 ### Managing Stock
 - **Restock**: Record when you add items to storage
