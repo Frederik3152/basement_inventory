@@ -160,9 +160,23 @@
                 <i class="bi bi-house-door"></i> Basement Inventory Manager
             </span>
             <div>
-                <button class="btn btn-outline-light btn-sm me-2" onclick="showScanner()">
-                    <i class="bi bi-upc-scan"></i> Scan Barcode
-                </button>
+                <div class="dropdown d-inline-block me-2">
+                    <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-upc-scan"></i> Scan Barcode
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#" onclick="showScanner('restock')">
+                            <i class="bi bi-box-arrow-in-down text-success"></i> Restock Mode
+                        </a></li>
+                        <li><a class="dropdown-item" href="#" onclick="showScanner('usage')">
+                            <i class="bi bi-box-arrow-up text-warning"></i> Consume Mode
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" onclick="showScanner()">
+                            <i class="bi bi-search"></i> Find Item Only
+                        </a></li>
+                    </ul>
+                </div>
                 <button class="btn btn-light btn-sm" onclick="showAddItemModal()">
                     <i class="bi bi-plus-circle"></i> Add Item
                 </button>
@@ -232,21 +246,35 @@
             <!-- Inventory Tab -->
             <div class="tab-pane fade show active" id="inventory">
                 <div class="row mb-3">
-                    <div class="col-md-6">
+                    <div class="col-md-3">
                         <input type="text" class="form-control" id="searchInput" placeholder="Search items...">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <select class="form-select" id="categoryFilter">
                             <option value="">All Categories</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <select class="form-select" id="stockFilter">
                             <option value="">All Stock Levels</option>
                             <option value="good">Good Stock</option>
                             <option value="low">Low Stock</option>
                             <option value="out">Out of Stock</option>
                         </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="locationFilter">
+                            <option value="">All Locations</option>
+                            <option value="Box 1">Box 1</option>
+                            <option value="Box 2">Box 2</option>
+                            <option value="Box 3">Box 3</option>
+                            <option value="Box 4">Box 4</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-outline-secondary w-100" onclick="clearAllFilters()">
+                            <i class="bi bi-x-circle"></i> Clear
+                        </button>
                     </div>
                 </div>
                 <div id="itemsList" class="row">
@@ -354,7 +382,13 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Location</label>
-                            <input type="text" class="form-control" name="location" placeholder="e.g., Shelf A">
+                            <select class="form-select" name="location">
+                                <option value="">Select Location</option>
+                                <option value="Box 1">Box 1</option>
+                                <option value="Box 2">Box 2</option>
+                                <option value="Box 3">Box 3</option>
+                                <option value="Box 4">Box 4</option>
+                            </select>
                         </div>
                     </form>
                 </div>
@@ -417,7 +451,13 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Location</label>
-                            <input type="text" class="form-control" name="location" placeholder="e.g., Shelf A">
+                            <select class="form-select" name="location">
+                                <option value="">Select Location</option>
+                                <option value="Box 1">Box 1</option>
+                                <option value="Box 2">Box 2</option>
+                                <option value="Box 3">Box 3</option>
+                                <option value="Box 4">Box 4</option>
+                            </select>
                         </div>
                     </form>
                 </div>
@@ -475,6 +515,17 @@
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    
+    <!-- Initial filter configuration -->
+    {% if initial_filter %}
+    <script>
+        window.initialFilter = {
+            type: "{{ initial_filter.type }}",
+            value: "{{ initial_filter.value }}"
+        };
+    </script>
+    {% endif %}
+    
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>

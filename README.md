@@ -1,158 +1,204 @@
-# Basement Inventory Manager
+# Basement Inventory Manager - Complete Documentation
 
-A modern, intuitive inventory management application designed to help you track items in your basement storage. Features include barcode scanning via phone camera, category management, stock tracking, and transaction history.
+A modern, comprehensive inventory management application designed for tracking basement storage items with PostgreSQL database integration, barcode scanning, and real-time management capabilities.
 
-## Features
+## 📋 Table of Contents
 
-- **📱 Barcode Scanning**: Use your phone camera to quickly identify and manage items
-- **🏷️ Multiple Barcodes**: Support multiple barcodes per item (different brands, sizes, etc.)
-- **📊 Real-time Dashboard**: View key metrics and stock levels at a glance
-- **🏷️ Category Management**: Organize items into logical categories
-- **📈 Stock Tracking**: Monitor current stock levels and get low-stock alerts
-- **📝 Transaction History**: Track all replenishments and usage
-- **🎨 Modern UI**: Clean, responsive design that works on all devices
-- **⚡ Fast & Lightweight**: In-memory storage for quick responses
+- [Quick Start Guide](./QUICK_START.md)
+- [Installation & Setup](./INSTALLATION.md)
+- [Database Configuration](./DATABASE.md)
+- [API Documentation](./API.md)
+- [User Guide](./USER_GUIDE.md)
+- [Development Guide](./DEVELOPMENT.md)
+- [Troubleshooting](./TROUBLESHOOTING.md)
+- [Architecture Overview](./ARCHITECTURE.md)
+- [Deployment Guide](./DEPLOYMENT.md)
 
-## Technology Stack
+## 🚀 Overview
 
-- **Backend**: Python Flask with REST API
-- **Frontend**: HTML5, CSS3, JavaScript (Bootstrap 5)
-- **Barcode Scanning**: HTML5-QRCode library
-- **Storage**: In-memory (database integration planned)
+The Basement Inventory Manager is a full-stack web application that provides:
 
-## Quick Start
+- **PostgreSQL Database Integration**: Persistent storage with schema support
+- **Multi-Barcode Support**: Handle multiple barcodes per item
+- **Real-time Barcode Scanning**: Use your phone camera for quick item identification
+- **Category Management**: Organize items into logical categories
+- **Stock Tracking**: Monitor inventory levels with low-stock alerts
+- **Transaction History**: Complete audit trail of all inventory movements
+- **Modern Web Interface**: Responsive design that works on all devices
+- **RESTful API**: Complete REST API for programmatic access
 
-1. **Install Dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
+## 🏗️ System Architecture
 
-2. **Run the Application**
-   ```bash
-   python app.py
-   ```
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│                 │    │                 │    │                 │
+│   Frontend      │◄──►│   Flask API     │◄──►│   PostgreSQL    │
+│   (HTML/JS)     │    │   (Python)      │    │   Database      │
+│                 │    │                 │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+        │                        │                        │
+        │                        │                        │
+    Browser                  API Server              Network DB
+  Barcode Scanner           REST Endpoints           Schema Support
+```
 
-3. **Open in Browser**
-   - Navigate to `http://localhost:5000`
-   - Start adding your basement items!
+## ✨ Key Features
 
-## Usage
+### Database Integration
+- **PostgreSQL Support**: Full PostgreSQL database integration
+- **Schema Support**: Configure custom database schemas
+- **Network Database**: Connect to PostgreSQL on remote servers
+- **Automatic Setup**: Tables and schemas created automatically
+- **Data Persistence**: All data permanently stored
 
-### Adding Items
-1. Click "Add Item" button
-2. Fill in item details (name, category, stock levels, etc.)
-3. Add one or more barcodes for the item:
-   - Click the "+" button to add additional barcode fields
-   - Use multiple barcodes for items that come in different brands/sizes
-   - Remove barcode fields with the "-" button
-
-### Editing Items
-1. Click the edit button (pencil icon) on any item card
-2. Modify any item details including:
-   - Name, category, stock levels, unit, location
-   - Add or remove barcodes
-   - Update stock quantities
-3. Use the "Delete Item" button to permanently remove items
-4. All changes are saved immediately
+### Inventory Management
+- **Multi-Barcode Items**: Support multiple barcodes per item
+- **Category Organization**: Pre-configured categories with custom support
+- **Stock Tracking**: Current stock, minimum levels, and units
+- **Location Tracking**: Physical location information
+- **Real-time Updates**: Instant UI updates on all changes
 
 ### Barcode Scanning
-1. Click "Scan Barcode" button
-2. Allow camera access when prompted
-3. Point camera at barcode
-4. If item exists, it will be highlighted
-5. If new barcode, option to create new item
+- **Camera Integration**: Use device camera for barcode scanning
+- **Multiple Format Support**: QR codes, UPC, EAN, and more
+- **Quick Item Lookup**: Instant item identification
+- **Add New Items**: Create items directly from scanned barcodes
 
-### Managing Multiple Barcodes
-- **View Barcodes**: Items with multiple barcodes show a count and "eye" icon
-- **Add Barcodes**: Click the eye icon to view/manage all barcodes for an item
-- **Remove Barcodes**: Use the trash icon next to individual barcodes
-- **Scan Any Barcode**: Any barcode associated with an item will find it
-- **Edit from Barcodes**: Click "Edit Item" button in the barcodes modal for full editing
+### Transaction Management
+- **Stock Operations**: Restock and usage transactions
+- **Complete History**: Full audit trail of all movements
+- **Quantity Tracking**: Precise quantity management
+- **Notes Support**: Add context to each transaction
+
+## 🛠️ Technology Stack
+
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| **Backend** | Python Flask | REST API server |
+| **Database** | PostgreSQL | Data persistence |
+| **Frontend** | HTML5/CSS3/JavaScript | User interface |
+| **Styling** | Bootstrap 5 | Responsive design |
+| **Barcode** | HTML5-QRCode | Camera barcode scanning |
+| **Icons** | Bootstrap Icons | UI iconography |
+| **Database Driver** | psycopg2 | PostgreSQL connectivity |
+
+## 📦 Installation Overview
+
+1. **Clone/Download** the project files
+2. **Install Dependencies** using pip
+3. **Configure Database** connection in `.env`
+4. **Run Application** with Python
+5. **Access Interface** via web browser
+
+> See [Installation Guide](./INSTALLATION.md) for detailed steps.
+
+## 🗄️ Database Schema
+
+The application uses a PostgreSQL database with the following schema:
+
+```sql
+-- Categories table
+home_inventory.categories (
+    id VARCHAR(50) PRIMARY KEY,
+    name VARCHAR(100) NOT NULL
+)
+
+-- Items table  
+home_inventory.items (
+    id VARCHAR(36) PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    barcodes TEXT[],
+    category_id VARCHAR(50) REFERENCES categories(id),
+    current_stock INTEGER DEFAULT 0,
+    min_stock INTEGER DEFAULT 0,
+    unit VARCHAR(50) NOT NULL,
+    location VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
+
+-- Transactions table
+home_inventory.transactions (
+    id VARCHAR(36) PRIMARY KEY,
+    item_id VARCHAR(36) REFERENCES items(id) ON DELETE CASCADE,
+    type VARCHAR(20) CHECK (type IN ('restock', 'usage')),
+    quantity INTEGER NOT NULL,
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
+```
+
+## 🔧 Configuration
+
+The application is configured via environment variables in the `.env` file:
+
+```env
+# Flask Configuration
+FLASK_APP=app.py
+FLASK_ENV=development
+FLASK_DEBUG=True
+
+# Database Configuration
+DATABASE_URL=postgresql://username:password@host:port/database
+DATABASE_SCHEMA=home_inventory
+```
+
+## 📱 Usage Examples
+
+### Adding a New Item
+1. Click "Add Item" button
+2. Fill in item details (name, category, stock)
+3. Add multiple barcodes if needed
+4. Save to database
+
+### Scanning a Barcode
+1. Click "Scan Barcode" 
+2. Allow camera access
+3. Point camera at barcode
+4. Item automatically identified or create new
 
 ### Managing Stock
-- **Restock**: Record when you add items to storage
-- **Usage**: Record when you use/consume items
-- **Low Stock Alerts**: Automatic notifications when items run low
+1. Find item in inventory
+2. Click "Restock" or "Use" buttons
+3. Enter quantity and notes
+4. Transaction recorded automatically
 
-### Categories
-Pre-configured categories include:
-- Paper Products
-- Canned Goods
-- Cleaning Supplies
-- Personal Care
-- Beverages
-- Snacks
-- Other
+## 🔍 API Overview
 
-## API Endpoints
-
-### Items
-- `GET /api/items` - Get all items
-- `POST /api/items` - Create new item (with barcodes array)
-- `PUT /api/items/<id>` - Update item (with barcodes array)
-- `DELETE /api/items/<id>` - Delete item
-- `GET /api/items/barcode/<barcode>` - Find item by any of its barcodes
-- `POST /api/items/<id>/barcodes` - Add a barcode to an existing item
-- `DELETE /api/items/<id>/barcodes/<barcode>` - Remove a barcode from an item
-
-### Categories
-- `GET /api/categories` - Get all categories
-
-### Transactions
-- `GET /api/transactions` - Get transaction history
-- `POST /api/transactions` - Record new transaction
-
-### Utilities
-- `GET /api/low-stock` - Get items running low on stock
-
-## Development
-
-The application uses a modular structure:
+The application provides a complete REST API:
 
 ```
-├── app.py              # Flask backend with API routes
-├── templates/
-│   └── index.html      # Main HTML template
-├── static/
-│   └── js/
-│       └── app.js      # Frontend JavaScript
-├── requirements.txt    # Python dependencies
-└── README.md          # This file
+GET    /api/items                    # Get all items
+POST   /api/items                    # Create new item
+PUT    /api/items/{id}               # Update item
+DELETE /api/items/{id}               # Delete item
+GET    /api/items/barcode/{barcode}  # Find by barcode
+POST   /api/items/{id}/barcodes      # Add barcode
+DELETE /api/items/{id}/barcodes/{bc} # Remove barcode
+GET    /api/categories               # Get categories
+GET    /api/transactions             # Get transaction history
+POST   /api/transactions             # Create transaction
+GET    /api/low-stock                # Get low stock items
 ```
 
-### Key Components
+## 🚀 Getting Started
 
-1. **Backend (app.py)**
-   - Flask REST API
-   - In-memory data storage
-   - CORS enabled for development
+1. **Read the [Quick Start Guide](./QUICK_START.md)** for immediate setup
+2. **Follow the [Installation Guide](./INSTALLATION.md)** for detailed setup
+3. **Configure your [Database](./DATABASE.md)** connection
+4. **Explore the [User Guide](./USER_GUIDE.md)** for feature walkthroughs
+5. **Check [Troubleshooting](./TROUBLESHOOTING.md)** if you encounter issues
 
-2. **Frontend (index.html + app.js)**
-   - Responsive Bootstrap UI
-   - Real-time updates
-   - Barcode scanning integration
+## 📞 Support
 
-## Sample Data
+- Check the [Troubleshooting Guide](./TROUBLESHOOTING.md) for common issues
+- Review the [API Documentation](./API.md) for integration questions
+- See the [Development Guide](./DEVELOPMENT.md) for customization
 
-The application comes with sample items to get you started:
-- Toilet Paper (24 rolls) - with 2 barcodes for different brands
-- Paper Towels (12 rolls) - with 1 barcode
-- Canned Tomatoes (8 cans) - with 2 barcodes for different brands/sizes
+## 📄 License
 
-## Future Enhancements
+MIT License - Feel free to use and modify for your personal or commercial needs.
 
-- Database integration (SQLite/PostgreSQL)
-- User authentication
-- Export/import functionality
-- Mobile app
-- Advanced reporting
-- Inventory value tracking
-- Expiration date monitoring
+---
 
-## Contributing
-
-This is a personal project, but suggestions and improvements are welcome!
-
-## License
-
-MIT License - feel free to use and modify for your own needs.
+*This documentation covers the complete Basement Inventory Manager system with PostgreSQL database integration. Each linked document provides detailed information for specific aspects of the system.*
