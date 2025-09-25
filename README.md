@@ -155,42 +155,7 @@ POST /api/transactions
 }
 ```
 
-## Default Categories
-
-The application comes with these predefined categories:
-
-- **Paper Products** - Toilet paper, paper towels, tissues
-- **Canned Goods** - Canned food items
-- **Cleaning Supplies** - Detergents, cleaners, supplies
-- **Personal Care** - Toiletries, hygiene products
-- **Beverages** - Drinks, juices, water
-- **Snacks** - Chips, crackers, treats
-- **Alcohol** - Beer, wine, spirits
-- **Other** - Miscellaneous items
-
 ## Configuration
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|----------|
-| `DATABASE_URL` | PostgreSQL connection string | Required |
-| `DATABASE_SCHEMA` | Database schema name | `pi_data` |
-| `FLASK_ENV` | Flask environment | `development` |
-| `FLASK_DEBUG` | Enable debug mode | `True` |
-
-### Database Connection Examples
-
-```env
-# Local PostgreSQL
-DATABASE_URL=postgresql://username:password@localhost:5432/inventory
-
-# Remote PostgreSQL
-DATABASE_URL=postgresql://user:pass@hostname:5432/dbname
-
-# PostgreSQL with SSL
-DATABASE_URL=postgresql://user:pass@host:5432/db?sslmode=require
-```
 
 ## Technology Stack
 
@@ -262,10 +227,4 @@ psycopg2-binary==2.9.7
 
 MIT License - Feel free to use and modify for personal or commercial projects.
 
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
 ---
-
-**Built for efficient home inventory management**
