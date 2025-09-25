@@ -193,16 +193,6 @@ The application supports scanning various barcode formats:
 - **Notes**: Add context to each transaction
 - **History**: View complete transaction log
 
-## Development
-
-### Running in Development Mode
-
-```bash
-export FLASK_ENV=development
-export FLASK_DEBUG=True
-python app.py
-```
-
 ### Database Initialization
 
 The database tables and schema are automatically created when the application starts. The `Database` class in `database.py` handles:
