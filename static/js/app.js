@@ -3,14 +3,23 @@ let items = [];
 let categories = {};
 let transactions = [];
 let html5QrcodeScanner = null;
+let scannerMode = null; // 'restock', 'usage', or null for find-only
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
     loadCategories();
-    loadItems();
-    loadTransactions();
     setupEventListeners();
     updateStats();
+    
+    // Load items and then apply initial filter
+    loadItems().then(() => {
+        // Apply initial filter if specified (from URL-based QR codes)
+        if (window.initialFilter) {
+            applyInitialFilter();
+        }
+    });
+    
+    loadTransactions();
 });
 
 // Setup event listeners
@@ -19,6 +28,7 @@ function setupEventListeners() {
     document.getElementById('searchInput').addEventListener('input', filterItems);
     document.getElementById('categoryFilter').addEventListener('change', filterItems);
     document.getElementById('stockFilter').addEventListener('change', filterItems);
+    document.getElementById('locationFilter').addEventListener('change', filterItems);
     
     // Tab change events
     const tabLinks = document.querySelectorAll('#mainTabs a[data-bs-toggle="tab"]');
@@ -325,9 +335,25 @@ async function saveTransaction() {
 }
 
 // Barcode scanner functions
-function showScanner() {
+function showScanner(mode = null) {
+    scannerMode = mode;
     const overlay = document.getElementById('scannerOverlay');
     overlay.style.display = 'flex';
+    
+    // Update scanner title based on mode
+    const scannerTitle = document.querySelector('#scannerOverlay h5');
+    if (scannerTitle) {
+        switch(mode) {
+            case 'restock':
+                scannerTitle.innerHTML = '<i class="bi bi-box-arrow-in-down text-success"></i> Scan to Restock';
+                break;
+            case 'usage':
+                scannerTitle.innerHTML = '<i class="bi bi-box-arrow-up text-warning"></i> Scan to Consume';
+                break;
+            default:
+                scannerTitle.innerHTML = '<i class="bi bi-search"></i> Scan to Find Item';
+        }
+    }
     
     html5QrcodeScanner = new Html5Qrcode("reader");
     
@@ -359,34 +385,75 @@ function hideScanner() {
         });
     }
     
+    scannerMode = null; // Reset scanner mode
     document.getElementById('scannerOverlay').style.display = 'none';
 }
 
 async function onScanSuccess(decodedText, decodedResult) {
+    // Store the scanner mode before hiding the scanner
+    const currentScannerMode = scannerMode;
     hideScanner();
     
     try {
         const item = await apiCall(`/api/items/barcode/${encodeURIComponent(decodedText)}`);
-        showToast(`Found: ${item.name}`, 'success');
         
-        // Switch to inventory tab and highlight the item
-        const inventoryTab = new bootstrap.Tab(document.querySelector('a[href="#inventory"]'));
-        inventoryTab.show();
-        
-        // Filter to show only this item temporarily
-        const searchInput = document.getElementById('searchInput');
-        searchInput.value = item.name;
-        filterItems();
+        // Handle different scanner modes
+        if (currentScannerMode === 'restock') {
+            showToast(`Found: ${item.name} - Opening restock dialog`, 'success');
+            showTransactionModal(item.id, item.name, 'restock');
+        } else if (currentScannerMode === 'usage') {
+            showToast(`Found: ${item.name} - Opening consume dialog`, 'success');
+            showTransactionModal(item.id, item.name, 'usage');
+        } else {
+            // Default behavior - find and highlight item
+            showToast(`Found: ${item.name}`, 'success');
+            
+            // Switch to inventory tab and highlight the item
+            const inventoryTab = new bootstrap.Tab(document.querySelector('a[href="#inventory"]'));
+            inventoryTab.show();
+            
+            // Filter to show only this item temporarily
+            const searchInput = document.getElementById('searchInput');
+            searchInput.value = item.name;
+            filterItems();
+        }
         
     } catch (error) {
         // Item not found, ask if user wants to add it
-        if (confirm(`Barcode ${decodedText} not found. Would you like to add a new item with this barcode?`)) {
+        const modeText = currentScannerMode ? ` in ${currentScannerMode} mode` : '';
+        if (confirm(`Barcode ${decodedText} not found${modeText}. Would you like to add a new item with this barcode?`)) {
             showAddItemModal();
             // Add the barcode to the first barcode field
             const firstBarcodeInput = document.querySelector('input[name="barcodes[]"]');
             if (firstBarcodeInput) {
                 firstBarcodeInput.value = decodedText;
             }
+        }
+    }
+}
+
+// Apply initial filter from URL parameters
+function applyInitialFilter() {
+    if (!window.initialFilter) return;
+    
+    const { type, value } = window.initialFilter;
+    
+    if (type === 'location') {
+        console.log('Applying initial location filter:', value); // Debug log
+        
+        // Set the location filter
+        const locationFilter = document.getElementById('locationFilter');
+        if (locationFilter) {
+            locationFilter.value = value;
+            console.log('Location filter set to:', locationFilter.value); // Debug log
+            
+            // Apply the filter
+            filterItems();
+            
+            // Show a toast message
+            showToast(`Showing items in ${value}`, 'info');
+        } else {
+            console.error('Location filter element not found'); // Debug log
         }
     }
 }
@@ -516,19 +583,38 @@ function onScanFailure(error) {
     // Handle scan failure, usually better to ignore rather than log
 }
 
-// Filter and search functions
+// Location filtering functions
+function filterItemsByLocation(location) {
+    const filteredItems = items.filter(item => {
+        if (!location) return true;
+        return item.location && item.location.toLowerCase().includes(location.toLowerCase());
+    });
+    
+    displayItems(filteredItems);
+    
+    // Update the location filter display
+    const locationFilter = document.getElementById('locationFilter');
+    if (locationFilter && location) {
+        locationFilter.value = location;
+        showToast(`Showing ${filteredItems.length} items in ${location}`, 'success');
+    }
+}
+
+// Enhanced filtering function that includes location
 function filterItems() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
     const categoryFilter = document.getElementById('categoryFilter').value;
     const stockFilter = document.getElementById('stockFilter').value;
+    const locationFilter = document.getElementById('locationFilter') ? document.getElementById('locationFilter').value : '';
     
-    let filteredItems = items.filter(item => {
-        const matchesSearch = item.name.toLowerCase().includes(searchTerm) ||
-                            (item.barcodes && item.barcodes.some(barcode => barcode.includes(searchTerm))) ||
-                            (item.location && item.location.toLowerCase().includes(searchTerm));
+    const filteredItems = items.filter(item => {
+        // Search filter
+        const matchesSearch = !searchTerm || item.name.toLowerCase().includes(searchTerm);
         
+        // Category filter
         const matchesCategory = !categoryFilter || item.category === categoryFilter;
         
+        // Stock filter
         let matchesStock = true;
         if (stockFilter === 'good') {
             matchesStock = item.current_stock > item.min_stock;
@@ -538,10 +624,24 @@ function filterItems() {
             matchesStock = item.current_stock === 0;
         }
         
-        return matchesSearch && matchesCategory && matchesStock;
+        // Location filter
+        const matchesLocation = !locationFilter || 
+            (item.location && item.location.toLowerCase().includes(locationFilter.toLowerCase()));
+        
+        return matchesSearch && matchesCategory && matchesStock && matchesLocation;
     });
     
     displayItems(filteredItems);
+}
+
+// Clear all filters function
+function clearAllFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('categoryFilter').value = '';
+    document.getElementById('stockFilter').value = '';
+    document.getElementById('locationFilter').value = '';
+    filterItems();
+    showToast('All filters cleared', 'info');
 }
 
 // Utility functions

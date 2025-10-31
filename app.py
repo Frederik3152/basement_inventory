@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, redirect
 from flask_cors import CORS
 from datetime import datetime
 import uuid
@@ -20,6 +20,13 @@ except Exception as e:
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/box/<int:box_number>')
+def box_filter(box_number):
+    """Direct link to inventory filtered by specific box"""
+    if box_number not in [1, 2, 3, 4]:
+        return redirect('/')
+    return render_template('index.html', initial_filter={'type': 'location', 'value': f'Box {box_number}'})
 
 @app.route('/api/items', methods=['GET'])
 def get_items():
