@@ -1,6 +1,6 @@
 # Basement Inventory Manager
 
-A Flask-based web application for managing home inventory with barcode scanning and stock tracking capabilities.
+A Flask-based web application for managing a home inventory with barcode scanning and stock tracking capabilities.
 
 ## Features
 
@@ -24,31 +24,39 @@ A Flask-based web application for managing home inventory with barcode scanning 
 1. **Clone the repository**
    ```bash
    git clone https://github.com/Frederik3152/basement_inventory.git
-   cd basement_inventory
    ```
 
-2. **Set up environment**
-   Create a `.env` file:
-   ```env
-   DATABASE_URL=postgresql://username:password@host:port/database
-   DATABASE_SCHEMA=pi_data
-   ```
 
-3. **Prepare SSL certificates**
-   Place your SSL certificate files in the project directory:
+2. **Prepare SSL certificates**
+   
+   Place your SSL certificate files in the a ssl directory within the project directory:
    - `server.crt` - SSL certificate
    - `server.key` - Private key
    
    *Note: HTTPS is required for camera access on modern browsers*
 
-4. **Deploy with Docker**
+3. **Set up docker compose**
+   
+   Prepare your docker-compose.yml file:
+   ```yaml
+   services:
+      home_inventory_app:
+         container_name: home_inventory_app
+         build:
+            context: PATH_TO_LOCAL_REPO
+         restart: always
+         ports:
+            - 443:443
+         environment:
+            - DATABASE_URL=postgresql://username:password@host:port/database
+            - DATABASE_SCHEMA=YOUR_DATABASE_SCHEMA
+         volumes:
+            - PATH_TO_LOCAL_REPO/ssl:/basement_inventory/ssl:ro # Mounting your ssl certification
+   ```
+
+4. **Build and deploy with Docker Compose**
    ```bash
-   docker build -t basement-inventory .
-   docker run -d -p 443:443 \
-     --env-file .env \
-     -v $(pwd)/server.crt:/app/server.crt \
-     -v $(pwd)/server.key:/app/server.key \
-     basement-inventory
+   docker compose up -d
    ```
 
 5. **Access the application**
@@ -79,14 +87,6 @@ The application automatically creates the required PostgreSQL tables:
 - **Categories**: Item categorization
 - **Transactions**: Stock movement history (restock/usage)
 
-## Technology Stack
+## Original Author
 
-- **Backend**: Flask (Python 3.11)
-- **Database**: PostgreSQL
-- **Frontend**: HTML5, Bootstrap 5, JavaScript
-- **Barcode**: HTML5-QRCode library
-- **Deployment**: Docker with SSL support
-
-## License
-
-MIT License
+Frederik Tørnstrøm ([github.com/Frederik3152](https://github.com/Frederik3152))
