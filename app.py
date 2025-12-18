@@ -371,4 +371,9 @@ def get_expired_projects():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(
+        host='0.0.0.0', 
+        port=443, 
+        ssl_context=('/basement_inventory/ssl/cert.pem', '/basement_inventory/ssl/key.pem'),
+        debug=False
+    )
