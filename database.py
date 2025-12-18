@@ -18,8 +18,8 @@ class Database:
         if not self.connection_string:
             raise ValueError("DATABASE_URL environment variable is required")
         
-        # Get schema from environment variable, default to 'public'
-        self.schema = os.getenv('DATABASE_SCHEMA', 'pi_data')
+        # Get schema from environment variable, default to 'home_database_dev'
+        self.schema = os.getenv('DATABASE_SCHEMA', 'home_database_dev')
         
         self.init_tables()
     
@@ -72,6 +72,22 @@ class Database:
                         quantity INTEGER NOT NULL,
                         notes TEXT,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                
+                # Projects table (for fermentations, brines, etc.)
+                cur.execute(f"""
+                    CREATE TABLE IF NOT EXISTS {self._get_table_name('projects')} (
+                        id VARCHAR(36) PRIMARY KEY,
+                        name VARCHAR(200) NOT NULL,
+                        type VARCHAR(50) NOT NULL,
+                        start_date DATE NOT NULL,
+                        expiry_date DATE NOT NULL,
+                        status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'completed', 'expired', 'discarded')),
+                        location VARCHAR(100),
+                        notes TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
                 
@@ -312,3 +328,134 @@ class Database:
                     item['last_updated'] = item['updated_at'].isoformat() if item['updated_at'] else None
                     items.append(item)
                 return items
+    
+    # ==================== PROJECT METHODS ====================
+    
+    def get_projects(self):
+        """Get all projects"""
+        with self.get_connection() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+                cur.execute(f"""
+                    SELECT * FROM {self._get_table_name('projects')}
+                    ORDER BY expiry_date ASC, name
+                """)
+                projects = []
+                for row in cur.fetchall():
+                    project = dict(row)
+                    project['start_date'] = project['start_date'].isoformat() if project['start_date'] else None
+                    project['expiry_date'] = project['expiry_date'].isoformat() if project['expiry_date'] else None
+                    project['created_at'] = project['created_at'].isoformat() if project['created_at'] else None
+                    project['updated_at'] = project['updated_at'].isoformat() if project['updated_at'] else None
+                    projects.append(project)
+                return projects
+    
+    def get_project_by_id(self, project_id: str):
+        """Get a single project by ID"""
+        with self.get_connection() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+                cur.execute(f"""
+                    SELECT * FROM {self._get_table_name('projects')}
+                    WHERE id = %s
+                """, (project_id,))
+                row = cur.fetchone()
+                if row:
+                    project = dict(row)
+                    project['start_date'] = project['start_date'].isoformat() if project['start_date'] else None
+                    project['expiry_date'] = project['expiry_date'].isoformat() if project['expiry_date'] else None
+                    project['created_at'] = project['created_at'].isoformat() if project['created_at'] else None
+                    project['updated_at'] = project['updated_at'].isoformat() if project['updated_at'] else None
+                    return project
+                return None
+    
+    def create_project(self, project_data: dict) -> str:
+        """Create a new project"""
+        project_id = str(uuid.uuid4())
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(f"""
+                    INSERT INTO {self._get_table_name('projects')} 
+                    (id, name, type, start_date, expiry_date, status, location, notes)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id
+                """, (
+                    project_id,
+                    project_data['name'],
+                    project_data['type'],
+                    project_data['start_date'],
+                    project_data['expiry_date'],
+                    project_data.get('status', 'active'),
+                    project_data.get('location', ''),
+                    project_data.get('notes', '')
+                ))
+                conn.commit()
+                return project_id
+    
+    def update_project(self, project_id: str, project_data: dict) -> bool:
+        """Update an existing project"""
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(f"""
+                    UPDATE {self._get_table_name('projects')} 
+                    SET name = %s, type = %s, start_date = %s, expiry_date = %s, 
+                        status = %s, location = %s, notes = %s, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = %s
+                """, (
+                    project_data['name'],
+                    project_data['type'],
+                    project_data['start_date'],
+                    project_data['expiry_date'],
+                    project_data['status'],
+                    project_data.get('location', ''),
+                    project_data.get('notes', ''),
+                    project_id
+                ))
+                conn.commit()
+                return cur.rowcount > 0
+    
+    def delete_project(self, project_id: str) -> bool:
+        """Delete a project"""
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(f"DELETE FROM {self._get_table_name('projects')} WHERE id = %s", (project_id,))
+                conn.commit()
+                return cur.rowcount > 0
+    
+    def get_expiring_projects(self, days: int = 7):
+        """Get projects expiring within specified days"""
+        with self.get_connection() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+                cur.execute(f"""
+                    SELECT * FROM {self._get_table_name('projects')}
+                    WHERE status = 'active' 
+                    AND expiry_date <= CURRENT_DATE + INTERVAL '%s days'
+                    AND expiry_date >= CURRENT_DATE
+                    ORDER BY expiry_date ASC
+                """, (days,))
+                projects = []
+                for row in cur.fetchall():
+                    project = dict(row)
+                    project['start_date'] = project['start_date'].isoformat() if project['start_date'] else None
+                    project['expiry_date'] = project['expiry_date'].isoformat() if project['expiry_date'] else None
+                    project['created_at'] = project['created_at'].isoformat() if project['created_at'] else None
+                    project['updated_at'] = project['updated_at'].isoformat() if project['updated_at'] else None
+                    projects.append(project)
+                return projects
+    
+    def get_expired_projects(self):
+        """Get projects that have expired"""
+        with self.get_connection() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+                cur.execute(f"""
+                    SELECT * FROM {self._get_table_name('projects')}
+                    WHERE status = 'active' AND expiry_date < CURRENT_DATE
+                    ORDER BY expiry_date DESC
+                """)
+                projects = []
+                for row in cur.fetchall():
+                    project = dict(row)
+                    project['start_date'] = project['start_date'].isoformat() if project['start_date'] else None
+                    project['expiry_date'] = project['expiry_date'].isoformat() if project['expiry_date'] else None
+                    project['created_at'] = project['created_at'].isoformat() if project['created_at'] else None
+                    project['updated_at'] = project['updated_at'].isoformat() if project['updated_at'] else None
+                    projects.append(project)
+                return projects

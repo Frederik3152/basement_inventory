@@ -253,5 +253,122 @@ def get_low_stock_items():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# ==================== PROJECT ROUTES ====================
+
+@app.route('/projects')
+def projects_page():
+    """Projects tracking page"""
+    return render_template('projects.html')
+
+@app.route('/api/projects', methods=['GET'])
+def get_projects():
+    """Get all projects"""
+    try:
+        projects = db.get_projects()
+        return jsonify(projects)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/projects', methods=['POST'])
+def create_project():
+    """Create a new project"""
+    try:
+        data = request.json
+        
+        # Validate required fields
+        required_fields = ['name', 'type', 'start_date', 'expiry_date']
+        if not all(field in data for field in required_fields):
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        project_data = {
+            'name': data['name'],
+            'type': data['type'],
+            'start_date': data['start_date'],
+            'expiry_date': data['expiry_date'],
+            'status': data.get('status', 'active'),
+            'location': data.get('location', ''),
+            'notes': data.get('notes', '')
+        }
+        
+        project_id = db.create_project(project_data)
+        project = db.get_project_by_id(project_id)
+        
+        return jsonify(project), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/projects/<project_id>', methods=['GET'])
+def get_project(project_id):
+    """Get a single project by ID"""
+    try:
+        project = db.get_project_by_id(project_id)
+        if project:
+            return jsonify(project)
+        else:
+            return jsonify({'error': 'Project not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/projects/<project_id>', methods=['PUT'])
+def update_project(project_id):
+    """Update an existing project"""
+    try:
+        data = request.json
+        
+        # Get current project
+        project = db.get_project_by_id(project_id)
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+        
+        project_data = {
+            'name': data.get('name', project['name']),
+            'type': data.get('type', project['type']),
+            'start_date': data.get('start_date', project['start_date']),
+            'expiry_date': data.get('expiry_date', project['expiry_date']),
+            'status': data.get('status', project['status']),
+            'location': data.get('location', project['location']),
+            'notes': data.get('notes', project['notes'])
+        }
+        
+        success = db.update_project(project_id, project_data)
+        if success:
+            updated_project = db.get_project_by_id(project_id)
+            return jsonify(updated_project)
+        else:
+            return jsonify({'error': 'Failed to update project'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/projects/<project_id>', methods=['DELETE'])
+def delete_project(project_id):
+    """Delete a project"""
+    try:
+        success = db.delete_project(project_id)
+        if success:
+            return jsonify({'message': 'Project deleted successfully'})
+        else:
+            return jsonify({'error': 'Project not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/projects/expiring', methods=['GET'])
+def get_expiring_projects():
+    """Get projects expiring soon"""
+    try:
+        days = request.args.get('days', 7, type=int)
+        expiring_projects = db.get_expiring_projects(days)
+        return jsonify(expiring_projects)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/projects/expired', methods=['GET'])
+def get_expired_projects():
+    """Get expired projects"""
+    try:
+        expired_projects = db.get_expired_projects()
+        return jsonify(expired_projects)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
