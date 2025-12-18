@@ -8,6 +8,7 @@ A Flask-based web application for managing a home inventory with barcode scannin
 - **Stock Management**: Track current stock levels with automatic low-stock alerts
 - **Multi-location Support**: Organize items by storage location (Box 1, Box 2, etc.)
 - **Transaction History**: Complete audit trail of restocks and usage
+- **Projects Tracking**: Monitor fermentation, brines, and other time-sensitive projects with expiry alerts
 - **REST API**: Full API for programmatic integration
 - **Responsive Design**: Mobile-friendly interface
 
@@ -79,6 +80,11 @@ A Flask-based web application for managing a home inventory with barcode scannin
 - `GET /box/{1-4}` - Filter items by storage box
 - `GET /api/categories` - List categories
 
+### Projects
+- `GET /projects` - Projects tracking page
+- `POST /projects` - Create or update project
+- `DELETE /projects` - Delete project
+
 ## Database Schema
 
 The application automatically creates the required PostgreSQL tables:
@@ -86,6 +92,7 @@ The application automatically creates the required PostgreSQL tables:
 - **Items**: Core inventory with barcodes, stock levels, and locations
 - **Categories**: Item categorization
 - **Transactions**: Stock movement history (restock/usage)
+- **Projects**: Time-sensitive projects tracking (fermentations, brines, etc.) with expiry monitoring
 
 ## Original Author
 
