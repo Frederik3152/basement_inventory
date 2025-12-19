@@ -82,7 +82,8 @@ class Database:
                         name VARCHAR(200) NOT NULL,
                         type VARCHAR(50) NOT NULL,
                         start_date DATE NOT NULL,
-                        expiry_date DATE NOT NULL,
+                        ready_date DATE,
+                        expiry_date DATE,
                         status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'completed', 'expired', 'discarded')),
                         location VARCHAR(100),
                         notes TEXT,
@@ -343,6 +344,7 @@ class Database:
                 for row in cur.fetchall():
                     project = dict(row)
                     project['start_date'] = project['start_date'].isoformat() if project['start_date'] else None
+                    project['ready_date'] = project['ready_date'].isoformat() if project['ready_date'] else None
                     project['expiry_date'] = project['expiry_date'].isoformat() if project['expiry_date'] else None
                     project['created_at'] = project['created_at'].isoformat() if project['created_at'] else None
                     project['updated_at'] = project['updated_at'].isoformat() if project['updated_at'] else None
@@ -361,6 +363,7 @@ class Database:
                 if row:
                     project = dict(row)
                     project['start_date'] = project['start_date'].isoformat() if project['start_date'] else None
+                    project['ready_date'] = project['ready_date'].isoformat() if project['ready_date'] else None
                     project['expiry_date'] = project['expiry_date'].isoformat() if project['expiry_date'] else None
                     project['created_at'] = project['created_at'].isoformat() if project['created_at'] else None
                     project['updated_at'] = project['updated_at'].isoformat() if project['updated_at'] else None
@@ -374,15 +377,16 @@ class Database:
             with conn.cursor() as cur:
                 cur.execute(f"""
                     INSERT INTO {self._get_table_name('projects')} 
-                    (id, name, type, start_date, expiry_date, status, location, notes)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    (id, name, type, start_date, ready_date, expiry_date, status, location, notes)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id
                 """, (
                     project_id,
                     project_data['name'],
                     project_data['type'],
                     project_data['start_date'],
-                    project_data['expiry_date'],
+                    project_data.get('ready_date'),
+                    project_data.get('expiry_date'),
                     project_data.get('status', 'active'),
                     project_data.get('location', ''),
                     project_data.get('notes', '')
@@ -396,14 +400,15 @@ class Database:
             with conn.cursor() as cur:
                 cur.execute(f"""
                     UPDATE {self._get_table_name('projects')} 
-                    SET name = %s, type = %s, start_date = %s, expiry_date = %s, 
+                    SET name = %s, type = %s, start_date = %s, ready_date = %s, expiry_date = %s, 
                         status = %s, location = %s, notes = %s, updated_at = CURRENT_TIMESTAMP
                     WHERE id = %s
                 """, (
                     project_data['name'],
                     project_data['type'],
                     project_data['start_date'],
-                    project_data['expiry_date'],
+                    project_data.get('ready_date'),
+                    project_data.get('expiry_date'),
                     project_data['status'],
                     project_data.get('location', ''),
                     project_data.get('notes', ''),

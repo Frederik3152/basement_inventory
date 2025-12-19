@@ -22,10 +22,19 @@ function setDefaultDates() {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('projectStartDate').value = today;
     
+    // Default ready date to 7 days from now
+    const ready = new Date();
+    ready.setDate(ready.getDate() + 7);
+    document.getElementById('projectReadyDate').value = ready.toISOString().split('T')[0];
+    
     // Default expiry to 30 days from now
     const expiry = new Date();
     expiry.setDate(expiry.getDate() + 30);
     document.getElementById('projectExpiryDate').value = expiry.toISOString().split('T')[0];
+    
+    // Uncheck no expiry checkbox
+    document.getElementById('projectNoExpiry').checked = false;
+    document.getElementById('projectExpiryDate').disabled = false;
 }
 
 // Load all projects
@@ -54,14 +63,14 @@ function updateStats() {
     sevenDaysFromNow.setDate(today.getDate() + 7);
     
     const expiring = projects.filter(p => {
-        if (p.status !== 'active') return false;
+        if (p.status !== 'active' || !p.expiry_date) return false;
         const expiryDate = new Date(p.expiry_date);
         return expiryDate > today && expiryDate <= sevenDaysFromNow;
     }).length;
     
     // Calculate expired
     const expired = projects.filter(p => {
-        if (p.status !== 'active') return false;
+        if (p.status !== 'active' || !p.expiry_date) return false;
         const expiryDate = new Date(p.expiry_date);
         return expiryDate < today;
     }).length;
@@ -136,6 +145,7 @@ function renderProjects(projectsToRender) {
 
 // Calculate days remaining
 function calculateDaysRemaining(expiryDate) {
+    if (!expiryDate) return null;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const expiry = new Date(expiryDate);
@@ -147,6 +157,9 @@ function calculateDaysRemaining(expiryDate) {
 function getProjectCardClass(project, daysRemaining) {
     if (project.status !== 'active') {
         return project.status;
+    }
+    if (daysRemaining === null) {
+        return 'active';
     }
     if (daysRemaining < 0) {
         return 'expired';
@@ -162,6 +175,9 @@ function getDaysRemainingClass(project, daysRemaining) {
     if (project.status !== 'active') {
         return '';
     }
+    if (daysRemaining === null) {
+        return 'safe';
+    }
     if (daysRemaining < 0) {
         return 'expired';
     }
@@ -175,6 +191,9 @@ function getDaysRemainingClass(project, daysRemaining) {
 function getDaysRemainingText(project, daysRemaining) {
     if (project.status !== 'active') {
         return '';
+    }
+    if (daysRemaining === null) {
+        return 'No expiry date';
     }
     if (daysRemaining < 0) {
         return `Expired ${Math.abs(daysRemaining)} day${Math.abs(daysRemaining) !== 1 ? 's' : ''} ago`;
@@ -247,7 +266,14 @@ function editProject(projectId) {
     document.getElementById('projectType').value = project.type;
     document.getElementById('projectStatus').value = project.status;
     document.getElementById('projectStartDate').value = project.start_date;
-    document.getElementById('projectExpiryDate').value = project.expiry_date;
+    document.getElementById('projectReadyDate').value = project.ready_date || '';
+    document.getElementById('projectExpiryDate').value = project.expiry_date || '';
+    
+    // Handle no expiry checkbox
+    const hasExpiry = project.expiry_date !== null && project.expiry_date !== '';
+    document.getElementById('projectNoExpiry').checked = !hasExpiry;
+    document.getElementById('projectExpiryDate').disabled = !hasExpiry;
+    
     document.getElementById('projectLocation').value = project.location || '';
     document.getElementById('projectNotes').value = project.notes || '';
     
@@ -260,19 +286,32 @@ async function saveProject() {
     const type = document.getElementById('projectType').value;
     const status = document.getElementById('projectStatus').value;
     const startDate = document.getElementById('projectStartDate').value;
-    const expiryDate = document.getElementById('projectExpiryDate').value;
+    const readyDate = document.getElementById('projectReadyDate').value;
+    const noExpiry = document.getElementById('projectNoExpiry').checked;
+    const expiryDate = noExpiry ? null : document.getElementById('projectExpiryDate').value;
     const location = document.getElementById('projectLocation').value.trim();
     const notes = document.getElementById('projectNotes').value.trim();
     
-    if (!name || !type || !status || !startDate || !expiryDate) {
+    if (!name || !type || !status || !startDate) {
         showToast('Please fill in all required fields', 'warning');
         return;
     }
     
     // Validate dates
-    if (new Date(expiryDate) < new Date(startDate)) {
-        showToast('Expiry date must be after start date', 'warning');
+    if (readyDate && new Date(readyDate) < new Date(startDate)) {
+        showToast('Ready date must be after start date', 'warning');
         return;
+    }
+    
+    if (expiryDate) {
+        if (new Date(expiryDate) < new Date(startDate)) {
+            showToast('Expiry date must be after start date', 'warning');
+            return;
+        }
+        if (readyDate && new Date(expiryDate) < new Date(readyDate)) {
+            showToast('Expiry date must be after ready date', 'warning');
+            return;
+        }
     }
     
     const projectData = {
@@ -280,6 +319,7 @@ async function saveProject() {
         type,
         status,
         start_date: startDate,
+        ready_date: readyDate || null,
         expiry_date: expiryDate,
         location,
         notes
@@ -345,7 +385,8 @@ function showProjectDetails(projectId) {
     document.getElementById('detailsProjectType').textContent = project.type;
     document.getElementById('detailsProjectStatus').innerHTML = getStatusBadge(project.status);
     document.getElementById('detailsStartDate').textContent = formatDate(project.start_date);
-    document.getElementById('detailsExpiryDate').textContent = formatDate(project.expiry_date);
+    document.getElementById('detailsReadyDate').textContent = project.ready_date ? formatDate(project.ready_date) : 'Not set';
+    document.getElementById('detailsExpiryDate').textContent = project.expiry_date ? formatDate(project.expiry_date) : 'No expiry';
     document.getElementById('detailsLocation').textContent = project.location || 'Not specified';
     document.getElementById('detailsNotes').textContent = project.notes || 'No notes';
     
@@ -367,4 +408,23 @@ function editProjectFromDetails() {
 async function deleteProjectFromDetails() {
     hideModal('projectDetailsModal');
     await deleteProject(currentProjectId);
+}
+
+// Toggle expiry date field
+function toggleExpiryDate() {
+    const checkbox = document.getElementById('projectNoExpiry');
+    const expiryField = document.getElementById('projectExpiryDate');
+    
+    if (checkbox.checked) {
+        expiryField.value = '';
+        expiryField.disabled = true;
+    } else {
+        expiryField.disabled = false;
+        // Set default to 30 days from now if empty
+        if (!expiryField.value) {
+            const expiry = new Date();
+            expiry.setDate(expiry.getDate() + 30);
+            expiryField.value = expiry.toISOString().split('T')[0];
+        }
+    }
 }

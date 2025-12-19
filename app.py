@@ -276,7 +276,7 @@ def create_project():
         data = request.json
         
         # Validate required fields
-        required_fields = ['name', 'type', 'start_date', 'expiry_date']
+        required_fields = ['name', 'type', 'start_date']
         if not all(field in data for field in required_fields):
             return jsonify({'error': 'Missing required fields'}), 400
         
@@ -284,7 +284,8 @@ def create_project():
             'name': data['name'],
             'type': data['type'],
             'start_date': data['start_date'],
-            'expiry_date': data['expiry_date'],
+            'ready_date': data.get('ready_date'),
+            'expiry_date': data.get('expiry_date'),
             'status': data.get('status', 'active'),
             'location': data.get('location', ''),
             'notes': data.get('notes', '')
@@ -324,7 +325,8 @@ def update_project(project_id):
             'name': data.get('name', project['name']),
             'type': data.get('type', project['type']),
             'start_date': data.get('start_date', project['start_date']),
-            'expiry_date': data.get('expiry_date', project['expiry_date']),
+            'ready_date': data.get('ready_date', project.get('ready_date')),
+            'expiry_date': data.get('expiry_date', project.get('expiry_date')),
             'status': data.get('status', project['status']),
             'location': data.get('location', project['location']),
             'notes': data.get('notes', project['notes'])
