@@ -57,8 +57,29 @@ function updateStats() {
     const total = projects.length;
     const active = projects.filter(p => p.status === 'active').length;
     
-    // Calculate expiring soon (within 7 days)
+    // Calculate ready projects (ready_date has passed, still active, not expired)
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const ready = projects.filter(p => {
+        if (p.status !== 'active' || !p.ready_date) return false;
+        const readyDate = new Date(p.ready_date);
+        readyDate.setHours(0, 0, 0, 0);
+        
+        // Ready if ready_date has passed
+        if (readyDate > today) return false;
+        
+        // Not ready if already expired
+        if (p.expiry_date) {
+            const expiryDate = new Date(p.expiry_date);
+            expiryDate.setHours(0, 0, 0, 0);
+            if (expiryDate < today) return false;
+        }
+        
+        return true;
+    }).length;
+    
+    // Calculate expiring soon (within 7 days)
     const sevenDaysFromNow = new Date();
     sevenDaysFromNow.setDate(today.getDate() + 7);
     
@@ -77,6 +98,7 @@ function updateStats() {
     
     document.getElementById('totalProjects').textContent = total;
     document.getElementById('activeProjects').textContent = active;
+    document.getElementById('readyProjects').textContent = ready;
     document.getElementById('expiringProjects').textContent = expiring;
     document.getElementById('expiredProjects').textContent = expired;
 }
@@ -98,6 +120,8 @@ function renderProjects(projectsToRender) {
         const daysRemaining = calculateDaysRemaining(project.expiry_date);
         const cardClass = getProjectCardClass(project, daysRemaining);
         const statusBadge = getStatusBadge(project.status);
+        const isReady = isProjectReady(project);
+        const readyBadge = isReady ? '<span class="status-badge status-ready ms-1"><i class="bi bi-check-circle"></i> Ready</span>' : '';
         
         return `
             <div class="col-md-6 col-lg-4 mb-3 fade-in">
@@ -105,7 +129,10 @@ function renderProjects(projectsToRender) {
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <h6 class="card-title mb-0">${escapeHtml(project.name)}</h6>
-                            ${statusBadge}
+                            <div class="d-flex flex-wrap gap-1">
+                                ${statusBadge}
+                                ${readyBadge}
+                            </div>
                         </div>
                         <p class="text-muted mb-2">
                             <span class="type-badge">${escapeHtml(project.type)}</span>
@@ -118,7 +145,8 @@ function renderProjects(projectsToRender) {
                         ` : ''}
                         <div class="mb-2">
                             <small class="text-muted">Started: ${formatDate(project.start_date)}</small><br>
-                            <small class="text-muted">Expires: ${formatDate(project.expiry_date)}</small>
+                            ${project.ready_date ? `<small class="text-muted">Ready: ${formatDate(project.ready_date)}</small><br>` : ''}
+                            <small class="text-muted">Expires: ${project.expiry_date ? formatDate(project.expiry_date) : 'No expiry'}</small>
                         </div>
                         <div class="days-remaining ${getDaysRemainingClass(project, daysRemaining)}">
                             ${getDaysRemainingText(project, daysRemaining)}
@@ -151,6 +179,29 @@ function calculateDaysRemaining(expiryDate) {
     const expiry = new Date(expiryDate);
     expiry.setHours(0, 0, 0, 0);
     return daysBetween(today, expiry);
+}
+
+// Check if project is ready
+function isProjectReady(project) {
+    if (project.status !== 'active' || !project.ready_date) return false;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const readyDate = new Date(project.ready_date);
+    readyDate.setHours(0, 0, 0, 0);
+    
+    // Ready if ready_date has passed
+    if (readyDate > today) return false;
+    
+    // Not ready if already expired
+    if (project.expiry_date) {
+        const expiryDate = new Date(project.expiry_date);
+        expiryDate.setHours(0, 0, 0, 0);
+        if (expiryDate < today) return false;
+    }
+    
+    return true;
 }
 
 // Get project card class based on status and days remaining

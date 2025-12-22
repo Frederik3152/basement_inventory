@@ -75,6 +75,11 @@ body {
     color: var(--success-color);
 }
 
+.status-ready {
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+    color: var(--info-color);
+}
+
 .status-completed {
     background: linear-gradient(135deg, #dbeafe, #bfdbfe);
     color: var(--info-color);
