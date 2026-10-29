@@ -3,7 +3,8 @@ let items = [];
 let categories = {};
 let transactions = [];
 let html5QrcodeScanner = null;
-let scannerMode = null; // 'restock', 'usage', or null for find-only
+let scannerMode = null; // 'restock', 'usage', 'fill', or null for find-only
+let scanTargetInput = null; // Input to fill in 'fill' mode
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
@@ -233,6 +234,9 @@ function showAddItemModal() {
     container.innerHTML = `
         <div class="input-group mb-2">
             <input type="text" class="form-control" name="barcodes[]" placeholder="Enter barcode">
+            <button type="button" class="btn btn-outline-secondary" onclick="scanIntoField(this)" title="Scan barcode">
+                <i class="bi bi-upc-scan"></i>
+            </button>
             <button type="button" class="btn btn-outline-secondary" onclick="addBarcodeField()">
                 <i class="bi bi-plus"></i>
             </button>
@@ -324,6 +328,9 @@ function showScanner(mode = null) {
             case 'usage':
                 scannerTitle.innerHTML = '<i class="bi bi-box-arrow-up text-warning"></i> Scan to Consume';
                 break;
+            case 'fill':
+                scannerTitle.innerHTML = '<i class="bi bi-upc-scan"></i> Scan Barcode';
+                break;
             default:
                 scannerTitle.innerHTML = '<i class="bi bi-search"></i> Scan to Find Item';
         }
@@ -360,14 +367,33 @@ function hideScanner() {
     }
     
     scannerMode = null; // Reset scanner mode
+    scanTargetInput = null;
     document.getElementById('scannerOverlay').style.display = 'none';
 }
 
+// Open the scanner to fill the barcode input next to the clicked button
+function scanIntoField(button) {
+    scanTargetInput = button.closest('.input-group').querySelector('input');
+    showScanner('fill');
+}
+
 async function onScanSuccess(decodedText, decodedResult) {
-    // Store the scanner mode before hiding the scanner
+    // Ignore decodes that arrive after the scanner was closed
+    if (document.getElementById('scannerOverlay').style.display === 'none') {
+        return;
+    }
+
+    // Store the scanner mode and target before hiding the scanner
     const currentScannerMode = scannerMode;
+    const targetInput = scanTargetInput;
     hideScanner();
-    
+
+    if (currentScannerMode === 'fill') {
+        targetInput.value = decodedText;
+        showToast(`Scanned: ${decodedText}`, 'success');
+        return;
+    }
+
     try {
         const item = await apiCall(`/api/items/barcode/${encodeURIComponent(decodedText)}`);
         
@@ -439,6 +465,9 @@ function addBarcodeField() {
     newField.className = 'input-group mb-2';
     newField.innerHTML = `
         <input type="text" class="form-control" name="barcodes[]" placeholder="Enter barcode">
+        <button type="button" class="btn btn-outline-secondary" onclick="scanIntoField(this)" title="Scan barcode">
+            <i class="bi bi-upc-scan"></i>
+        </button>
         <button type="button" class="btn btn-outline-danger" onclick="removeBarcodeField(this)">
             <i class="bi bi-dash"></i>
         </button>
@@ -480,6 +509,9 @@ function showBarcodesModal(itemId, itemName, barcodes) {
                         <hr>
                         <div class="input-group">
                             <input type="text" class="form-control" id="newBarcodeInput" placeholder="Add new barcode">
+                            <button type="button" class="btn btn-outline-secondary" onclick="scanIntoField(this)" title="Scan barcode">
+                                <i class="bi bi-upc-scan"></i>
+                            </button>
                             <button type="button" class="btn btn-primary" onclick="addNewBarcode()">
                                 <i class="bi bi-plus"></i> Add
                             </button>
@@ -718,6 +750,9 @@ function addEditBarcodeField(value = '') {
     fieldDiv.className = 'input-group mb-2';
     fieldDiv.innerHTML = `
         <input type="text" class="form-control" name="edit_barcodes[]" placeholder="Enter barcode" value="${escapeHtml(value)}">
+        <button type="button" class="btn btn-outline-secondary" onclick="scanIntoField(this)" title="Scan barcode">
+            <i class="bi bi-upc-scan"></i>
+        </button>
         <button type="button" class="btn btn-outline-danger" onclick="removeEditBarcodeField(this)" ${container.children.length === 0 ? 'disabled' : ''}>
             <i class="bi bi-dash"></i>
         </button>
